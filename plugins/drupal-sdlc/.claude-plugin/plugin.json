@@ -1,0 +1,10 @@
+{
+  "name": "drupal-sdlc",
+  "description": "AI-native SDLC automation for Drupal: spec-first, test-first workflow with Jira integration, config management, module scaffolding, and quality enforcement.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Axelerant"
+  },
+  "repository": "https://github.com/Pulkit0111/axelerant-automated-sdlc",
+  "keywords": ["drupal", "sdlc", "jira", "automation", "testing", "ci"]
+}

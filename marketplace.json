@@ -1,0 +1,17 @@
+{
+  "name": "axelerant-sdlc",
+  "owner": {
+    "name": "Axelerant"
+  },
+  "metadata": {
+    "description": "AI-native SDLC automation for Drupal projects with Jira integration"
+  },
+  "plugins": [
+    {
+      "name": "drupal-sdlc",
+      "source": "./plugins/drupal-sdlc",
+      "description": "Complete SDLC automation: spec → build → test → PR → review for Drupal + Jira",
+      "version": "1.0.0"
+    }
+  ]
+}

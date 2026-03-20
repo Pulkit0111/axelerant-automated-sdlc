@@ -1,0 +1,38 @@
+project:
+  name: ""                              # TODO: your project name (e.g. "my-drupal-site")
+  drupal_version: 11
+  php_version: "8.3"
+
+local_dev:
+  tool: ddev                            # ddev | lando | docksal
+  base_url: ""                          # TODO: your local URL (e.g. "https://my-project.ddev.site")
+  drush_prefix: "ddev drush"            # prefix for drush commands
+  quality_command: "ddev composer run-script quality"
+
+entity_types:
+  content_types: []                     # e.g. [article, page, blog_post]
+  taxonomies: []                        # e.g. [tags, category]
+  paragraph_types: []                   # e.g. [text_block, image_block]
+
+protected_files:
+  - web/sites/default/settings.php
+  - web/sites/default/settings.ddev.php
+
+high_risk_modules: []                   # modules that need extra review when modified
+
+api_integrations: []                    # external APIs this project connects to
+
+config_splits: []                       # e.g. [dev, stage, prod]
+
+playwright:
+  test_dir: "tests/playwright"
+  base_url_env_var: "BASE_URL"
+
+github:
+  owner: ""                             # TODO: GitHub org or username
+  repo: ""                              # TODO: GitHub repository name
+
+jira:
+  cloud_id: ""                          # TODO: Jira cloud ID (e.g. "mycompany.atlassian.net")
+  project_key: ""                       # TODO: Jira project key (e.g. "TDP")
+  board_url: ""                         # TODO: Full Jira board URL

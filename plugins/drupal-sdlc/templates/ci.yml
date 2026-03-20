@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+env:
+  DDEV_PROJECT_NAME: my-project         # TODO: your DDEV project name
+  BASE_URL: https://my-project.ddev.site # TODO: your base URL
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup DDEV
+        uses: ddev/github-action-setup-ddev@v1
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Composer install
+        run: ddev composer install --no-interaction
+
+      - name: Security audit
+        run: ddev composer audit --no-dev
+
+      - name: Set config sync directory
+        run: echo "\$settings['config_sync_directory'] = '../config/sync';" >> web/sites/default/settings.php
+
+      - name: Install Drupal
+        run: |
+          set -euo pipefail
+          ddev drush site:install standard -y
+          SITE_UUID=$(grep '^uuid:' config/sync/system.site.yml | awk '{print $2}')
+          ddev drush config:set system.site uuid "$SITE_UUID" -y
+          ddev drush entity:delete shortcut_set -y 2>/dev/null || true
+          ddev drush updatedb -y
+          ddev drush config:import -y || ddev drush config:import -y
+          ddev drush cache:rebuild
+          ddev drush user:password admin admin -y
+
+      - name: Config validation
+        run: |
+          set -euo pipefail
+          OUTPUT=$(ddev drush config:status 2>&1)
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "No differences"
+
+      - name: Config round-trip check
+        run: |
+          set -euo pipefail
+          ddev drush config:export -y
+          if ! git diff --exit-code config/sync/; then
+            echo "WARNING: Config does not round-trip cleanly. Committed config differs from exported config."
+            exit 1
+          fi
+
+      - name: Quality checks
+        run: ddev composer run-script quality
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: playwright-
+
+      - name: Install Playwright
+        run: npm ci && npx playwright install --with-deps chromium
+
+      - name: Health check
+        run: |
+          set -euo pipefail
+          curl -sf ${{ env.BASE_URL }} > /dev/null || (echo "Site is not responding at ${{ env.BASE_URL }}" && exit 1)
+
+      - name: Run Playwright tests
+        run: npx playwright test --config=tests/playwright/playwright.config.ts
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+          DRUPAL_ADMIN_USER: admin
+          DRUPAL_ADMIN_PASS: admin
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            tests/playwright/test-results/
+            tests/playwright/playwright-report/
+          retention-days: 14

@@ -1,0 +1,98 @@
+name: Jira Transition on Merge
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  transition-to-done:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract Jira ticket key from branch name
+        id: extract
+        run: |
+          set -euo pipefail
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          # Match any uppercase project key followed by a number (e.g. TDP-12, PROJ-5)
+          if [[ "$BRANCH" =~ ([A-Z]+-[0-9]+) ]]; then
+            echo "ticket=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "Found ticket: ${BASH_REMATCH[1]}"
+          else
+            echo "::warning::No Jira ticket key found in branch: $BRANCH"
+            echo "ticket=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get available transitions
+        if: steps.extract.outputs.ticket != ''
+        id: transitions
+        run: |
+          set -euo pipefail
+          TICKET="${{ steps.extract.outputs.ticket }}"
+          AUTH=$(echo -n "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}" | base64 -w 0)
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Basic $AUTH" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${TICKET}/transitions")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "HTTP Code: $HTTP_CODE"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Failed to get transitions (HTTP $HTTP_CODE): $BODY"
+            exit 1
+          fi
+          DONE_ID=$(echo "$BODY" | jq -r '.transitions[] | select(.name == "Done") | .id')
+          if [ -z "$DONE_ID" ] || [ "$DONE_ID" = "null" ]; then
+            echo "No 'Done' transition available for $TICKET (may already be Done)"
+            echo "done_id=" >> "$GITHUB_OUTPUT"
+          else
+            echo "Found Done transition ID: $DONE_ID"
+            echo "done_id=$DONE_ID" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Transition ticket to Done
+        if: steps.extract.outputs.ticket != '' && steps.transitions.outputs.done_id != ''
+        id: transition
+        run: |
+          set -euo pipefail
+          TICKET="${{ steps.extract.outputs.ticket }}"
+          DONE_ID="${{ steps.transitions.outputs.done_id }}"
+          AUTH=$(echo -n "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}" | base64 -w 0)
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Basic $AUTH" \
+            -H "Content-Type: application/json" \
+            -d "{\"transition\":{\"id\":\"${DONE_ID}\"}}" \
+            "${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${TICKET}/transitions")
+          if [ "$HTTP_CODE" = "204" ]; then
+            echo "Successfully transitioned $TICKET to Done"
+          else
+            echo "First attempt failed (HTTP $HTTP_CODE), retrying in 5s..."
+            sleep 5
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST \
+              -H "Authorization: Basic $AUTH" \
+              -H "Content-Type: application/json" \
+              -d "{\"transition\":{\"id\":\"${DONE_ID}\"}}" \
+              "${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${TICKET}/transitions")
+            if [ "$HTTP_CODE" = "204" ]; then
+              echo "Successfully transitioned $TICKET to Done on retry"
+            else
+              echo "Failed to transition $TICKET after retry (HTTP $HTTP_CODE)"
+              echo "transition_failed=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Post failure comment on PR
+        if: steps.transition.outputs.transition_failed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ticket = '${{ steps.extract.outputs.ticket }}';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: `⚠️ Failed to transition Jira ticket ${ticket} to Done. Please transition it manually.`
+            });

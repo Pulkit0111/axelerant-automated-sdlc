@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=$(cat /dev/stdin | jq -r \".tool_input.file_path // empty\" 2>/dev/null); [ -z \"$FILE\" ] && exit 0; for pat in \"settings.php\" \"settings.ddev.php\"; do [[ \"$FILE\" == *\"$pat\" ]] && echo \"BLOCKED: $pat is a protected file. Remove it from protected_files in drupal-claude.yml if you need to edit it.\" && exit 1; done; [[ \"$FILE\" == *.install ]] && echo \"BLOCKED: .install files require explicit approval.\" && exit 1; [[ \"$FILE\" == *config_split.config_split.* ]] && echo \"BLOCKED: config split files require explicit approval.\" && exit 1; exit 0'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=$(cat /dev/stdin | jq -r \".tool_input.file_path // empty\" 2>/dev/null); [ -z \"$FILE\" ] && exit 0; [[ \"$FILE\" =~ \\.(php|module|install|inc|theme|test)$ ]] && php -l \"$FILE\" 2>&1 | tail -3 || true'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
