@@ -63,7 +63,8 @@ The workflow caches:
 2. **Get transitions** — queries Jira for available transitions on the ticket
 3. **Transition to Done** — moves the ticket to Done status
 4. **Retry on failure** — waits 5 seconds and retries once if the first attempt fails
-5. **Post failure comment** — if transition still fails, posts a comment on the PR
+5. **Post completion comment on Jira** — posts a "Completed" comment with PR link, merge date, and who merged it
+6. **Post failure comment on PR** — if transition still fails, posts a comment on the GitHub PR so the team knows to transition manually
 
 ### Required GitHub Secrets
 

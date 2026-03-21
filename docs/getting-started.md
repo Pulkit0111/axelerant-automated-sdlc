@@ -94,10 +94,56 @@ In your GitHub repository settings, add these secrets:
 
 ## Step 4: Set Up MCP Servers
 
-Ensure you have the Atlassian and GitHub MCP servers configured in Claude Code.
-The plugin includes Playwright MCP configuration automatically.
+The plugin requires three MCP servers. **Playwright is included automatically.** GitHub and Atlassian must be configured by each user since they require personal auth tokens.
 
-For GitHub MCP, set the `GITHUB_TOKEN_JIRA` environment variable with a GitHub personal access token.
+### Playwright MCP (included)
+
+No action needed — the plugin's `.mcp.json` configures this automatically.
+
+### GitHub MCP (required for PRs)
+
+Add to your Claude Code MCP settings (or project `.mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<your-github-token>"
+      }
+    }
+  }
+}
+```
+
+**To get a GitHub token:**
+1. Go to https://github.com/settings/tokens
+2. Generate a new token (classic) with `repo` scope
+3. Set it as the `GITHUB_PERSONAL_ACCESS_TOKEN` value above
+
+Alternatively, set `GITHUB_TOKEN_JIRA` as an environment variable and reference it:
+```json
+"GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN_JIRA}"
+```
+
+### Atlassian MCP (required for Jira)
+
+Atlassian MCP is a Claude-managed integration. To connect it:
+1. Open Claude Code settings
+2. Go to MCP Servers → Add Server
+3. Search for "Atlassian" and connect your Atlassian account
+4. Authorize access to your Jira instance
+
+Once connected, the plugin's skills can read tickets, post comments, and transition issues automatically.
+
+### Verify MCP connections
+
+Test each MCP server works:
+- **GitHub:** Ask Claude "list open PRs on {owner}/{repo}" — should return results
+- **Atlassian:** Ask Claude "read Jira ticket {KEY}-1" — should return the ticket
+- **Playwright:** Run `/drupal-sdlc:validate` — visual verification step should work
 
 ## Step 5: Verify Installation
 
