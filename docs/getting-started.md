@@ -13,7 +13,7 @@
 
 ```
 /plugin marketplace add Pulkit0111/axelerant-automated-sdlc
-/plugin install drupal-sdlc@axelerant-sdlc --scope project
+/plugin install drupal-sdlc@Pulkit0111/axelerant-automated-sdlc
 ```
 
 ## Step 2: Configure Your Project
@@ -78,6 +78,10 @@ mkdir -p .github/workflows
 cp <plugin-path>/templates/ci.yml .github/workflows/ci.yml
 cp <plugin-path>/templates/jira-transition.yml .github/workflows/jira-transition.yml
 ```
+
+> ⚠️ Required edit before CI will run: Open `.github/workflows/ci.yml` and update
+> `DDEV_PROJECT_NAME` and `BASE_URL` on lines 8–9. The workflow will fail immediately
+> with a clear error until these are set.
 
 ### Update CI configuration
 

@@ -7,7 +7,7 @@ Spec-first, test-first Drupal development with Jira integration.
 
 ```
 /plugin marketplace add Pulkit0111/axelerant-automated-sdlc
-/plugin install drupal-sdlc@axelerant-sdlc --scope project
+/plugin install drupal-sdlc@Pulkit0111/axelerant-automated-sdlc
 ```
 
 ## Setup

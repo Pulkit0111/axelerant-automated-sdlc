@@ -1,22 +1,41 @@
+<!--
+⚠️  SETUP REQUIRED — Read this before using Claude Code on this project
+
+This file tells Claude everything it needs to know about your project.
+It is loaded automatically at the start of every Claude Code session.
+
+Before you start:
+1. Replace "Project Name" in the heading below with your actual project name
+2. Fill in ALL sections marked with ⚠️ REQUIRED
+3. Update the Workflow section if your branching or drush conventions differ
+4. Save the file — Claude will read it on next session start
+
+Incomplete sections = Claude working with wrong project context = wrong branches, wrong Jira keys, wrong repos.
+-->
+
 # Project Name — Claude Code Guide
 
 Project-specific configuration is in `drupal-claude.yml`. Read it at the start of every task.
 
 ## Project Overview
-<!-- TODO: Describe your project in 2-3 sentences -->
+<!-- ⚠️ REQUIRED: Replace this comment with 2-3 sentences describing your project.
+     Example: "Drupal 11 e-commerce platform for Acme Corp. Uses Commerce, Paragraphs,
+     and a custom Salesforce integration. Primary Jira project: ACME." -->
 
 ## Jira Project
-<!-- TODO: Fill in your Jira details or remove this section if not using Jira -->
-- Project:
-- Key:
-- Site:
-- Board:
+<!-- ⚠️ REQUIRED: Fill in your Jira details. Claude uses these to read tickets and post comments.
+     Remove this section entirely if your project doesn't use Jira. -->
+- Project: <!-- e.g. My Drupal Project -->
+- Key: <!-- e.g. MDP -->
+- Site: <!-- e.g. mycompany.atlassian.net -->
+- Board: <!-- e.g. https://mycompany.atlassian.net/jira/software/projects/MDP/boards/1 -->
 
 ## GitHub Repo
-<!-- TODO: Fill in your GitHub details -->
-- Owner:
-- Repo:
-- URL:
+<!-- ⚠️ REQUIRED: Fill in your GitHub details. Claude uses these to create and review PRs.
+     These must match the values in drupal-claude.yml → github.owner and github.repo. -->
+- Owner: <!-- e.g. my-org or my-username -->
+- Repo: <!-- e.g. my-drupal-project -->
+- URL: <!-- e.g. https://github.com/my-org/my-drupal-project -->
 
 ## Workflow — Follow This Every Time
 1. Read the Jira ticket using Atlassian MCP

@@ -17,6 +17,10 @@ cp <plugin-path>/templates/ci.yml .github/workflows/ci.yml
 cp <plugin-path>/templates/jira-transition.yml .github/workflows/jira-transition.yml
 ```
 
+> ⚠️ Required edit before CI will run: Open `.github/workflows/ci.yml` and update
+> `DDEV_PROJECT_NAME` and `BASE_URL` on lines 8–9. The workflow will fail immediately
+> with a clear error until these are set.
+
 ## CI Workflow (ci.yml)
 
 ### What It Does
@@ -44,9 +48,13 @@ Edit these values in `ci.yml`:
 
 ```yaml
 env:
-  DDEV_PROJECT_NAME: my-project         # Your DDEV project name
-  BASE_URL: https://my-project.ddev.site # Your DDEV site URL
+  DDEV_PROJECT_NAME: REPLACE_WITH_YOUR_DDEV_PROJECT_NAME
+  BASE_URL: REPLACE_WITH_YOUR_BASE_URL
 ```
+
+> ⚠️ Required edit before CI will run: Open `.github/workflows/ci.yml` and update
+> `DDEV_PROJECT_NAME` and `BASE_URL` on lines 8–9. The workflow will fail immediately
+> with a clear error until these are set.
 
 ### Caching
 

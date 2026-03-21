@@ -5,14 +5,25 @@ on:
     branches: [main]
 
 env:
-  DDEV_PROJECT_NAME: my-project         # TODO: your DDEV project name
-  BASE_URL: https://my-project.ddev.site # TODO: your base URL
+  DDEV_PROJECT_NAME: REPLACE_WITH_YOUR_DDEV_PROJECT_NAME
+  BASE_URL: REPLACE_WITH_YOUR_BASE_URL
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Verify CI configuration
+        run: |
+          if [[ "${{ env.DDEV_PROJECT_NAME }}" == "REPLACE_WITH_YOUR_DDEV_PROJECT_NAME" ]]; then
+            echo "ERROR: You must set DDEV_PROJECT_NAME in .github/workflows/ci.yml before this workflow will run."
+            exit 1
+          fi
+          if [[ "${{ env.BASE_URL }}" == "REPLACE_WITH_YOUR_BASE_URL" ]]; then
+            echo "ERROR: You must set BASE_URL in .github/workflows/ci.yml before this workflow will run."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
 
