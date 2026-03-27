@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "axelerant-automated-sdlc",
+  "description": "Axelerant's Claude Code plugins for AI-native software development lifecycle automation",
+  "owner": {
+    "name": "Axelerant",
+    "email": "engineering@axelerant.com"
+  },
+  "plugins": [
+    {
+      "name": "drupal-sdlc",
+      "description": "AI-native SDLC automation for Drupal: spec-first, test-first workflow with Jira integration, config management, module scaffolding, and quality enforcement.",
+      "category": "development",
+      "source": "./plugins/drupal-sdlc",
+      "homepage": "https://github.com/Pulkit0111/axelerant-automated-sdlc"
+    }
+  ]
+}
