@@ -1,7 +1,7 @@
 ---
 name: onboarding
 description: "Run post-install setup checks for the drupal-sdlc plugin. Verifies GITHUB_PERSONAL_ACCESS_TOKEN, MCP connectivity, Node.js version, and project config files. Auto-creates drupal-claude.yml and CLAUDE.md if missing. Use after installing the plugin on a new project, or when MCPs show as failed."
-argument-hint: ""
+argument-hint: "(no arguments needed)"
 ---
 
 # Plugin Onboarding
