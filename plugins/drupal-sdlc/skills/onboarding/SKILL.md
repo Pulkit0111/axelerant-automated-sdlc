@@ -1,6 +1,6 @@
 ---
 name: onboarding
-description: "Run post-install setup checks for the drupal-sdlc plugin. Verifies GITHUB_PERSONAL_ACCESS_TOKEN, MCP connectivity, Node.js version, and project config files. Auto-creates drupal-claude.yml and CLAUDE.md if missing. Use after installing the plugin on a new project, or when MCPs show as failed."
+description: "Run post-install setup checks for the drupal-sdlc plugin. Verifies GITHUB_TOKEN, MCP connectivity, and project config files. Auto-creates .mcp.json, drupal-claude.yml, and CLAUDE.md if missing. Use after installing the plugin on a new project, or when MCPs show as failed."
 argument-hint: "(no arguments needed)"
 ---
 
@@ -20,154 +20,190 @@ Run all setup checks and fix what's missing. Go through every check in order. Do
 You are verifying that the drupal-sdlc plugin is correctly set up for this project. Run each check, report the result clearly, and provide the exact fix for anything that fails.
 
 Use this format for each check:
-- ✅ **Check N — Name**: one-line result
-- ❌ **Check N — Name**: what's wrong + exact fix
+- Pass: **Check N — Name**: one-line result
+- Fail: **Check N — Name**: what's wrong + exact fix
 
 At the end, show a summary table and tell the user what to do next.
 
 ---
 
-### Check 1 — GITHUB_PERSONAL_ACCESS_TOKEN
+### Check 1 — GITHUB_TOKEN
 
 Run:
 ```bash
-if [ -n "$GITHUB_PERSONAL_ACCESS_TOKEN" ]; then echo "SET"; else echo "MISSING"; fi
+if [ -n "$GITHUB_TOKEN" ]; then echo "SET"; else echo "MISSING"; fi
 ```
 
-**If SET:** ✅ Continue.
+**If SET:** Pass. Continue.
 
-**If MISSING:** ❌ Tell the user:
+**If MISSING:** Fail. Tell the user:
 
-> `GITHUB_PERSONAL_ACCESS_TOKEN` is not set. The GitHub MCP server reads this specific variable — it is different from `GITHUB_TOKEN` (used by the `gh` CLI).
+> `GITHUB_TOKEN` is not set. This is the standard GitHub personal access token used by both the `gh` CLI and the GitHub MCP server.
 >
-> Run this to fix it (replace with your actual token):
+> 1. Go to https://github.com/settings/tokens
+> 2. Generate a classic token with `repo` + `read:org` scopes
+> 3. Add it to your shell:
 > ```shell
-> echo 'export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_your_token_here' >> ~/.zshrc
+> echo 'export GITHUB_TOKEN=ghp_your_token_here' >> ~/.zshrc
 > source ~/.zshrc
 > ```
-> Then **restart Claude Code completely**. Re-run `/onboarding` after restarting.
+> Then **restart Claude Code completely** and re-run `onboarding`.
 
-Stop here if this check fails — the remaining checks will also fail until this is set.
+Do NOT stop here — continue with the remaining checks so the user sees the full picture.
 
 ---
 
-### Check 2 — Node.js version
+### Check 2 — .mcp.json at project root
 
 Run:
 ```bash
-node --version 2>/dev/null || echo "NOT FOUND"
+cat .mcp.json 2>/dev/null | head -1 || echo "NOT FOUND"
 ```
 
-**If v20.x.x or higher:** ✅ Continue.
+**If found:** Pass. Continue.
 
-**If below v20 or NOT FOUND:** ❌ Tell the user:
+**If NOT FOUND:** Auto-create it from the plugin template.
 
-> Node.js 20+ is required for the Playwright MCP server. Install it from nodejs.org, then restart Claude Code.
+Find the template:
+```bash
+ls ~/.claude/plugins/cache/axelerant-automated-sdlc/drupal-sdlc/*/templates/mcp.json 2>/dev/null | tail -1
+```
+
+Copy that file to `.mcp.json` in the current project root.
+
+If the template is also not found, create `.mcp.json` with this exact content:
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+Tell the user:
+> `.mcp.json` has been created. Commit this file to git so your team members get it too.
 
 ---
 
-### Check 3 — GitHub MCP connectivity
+### Check 3 — enableAllProjectMcpServers
 
-Read `drupal-claude.yml` to get `github.owner` and `github.repo`. Then use the GitHub MCP to list pull requests on that repository.
+Run:
+```bash
+cat .claude/settings.local.json 2>/dev/null | grep -c enableAllProjectMcpServers || echo "0"
+```
 
-If `drupal-claude.yml` does not exist yet, skip to Check 5 — you need the config file before you can test GitHub MCP against the right repo.
+**If found (count > 0):** Pass. Continue.
 
-**If the GitHub MCP returns results (even "no open PRs"):** ✅ Continue.
+**If NOT found (0):** Fix it automatically.
 
-**If it fails with "Not Found" or authentication error:** ❌ Tell the user:
+Read `.claude/settings.local.json` if it exists, add `"enableAllProjectMcpServers": true` to the JSON, and write it back.
 
-> GitHub MCP cannot access the repository. Most likely causes:
-> 1. `GITHUB_PERSONAL_ACCESS_TOKEN` is set but the session hasn't restarted since it was added — restart Claude Code
-> 2. The token has insufficient scopes — it needs `repo` + `read:org`
-> 3. The `.mcp.json` in this project is missing or malformed — check that `.mcp.json` exists at the project root
+If the file doesn't exist, create `.claude/settings.local.json` with:
+```json
+{
+  "enableAllProjectMcpServers": true
+}
+```
+
+Tell the user:
+> `enableAllProjectMcpServers` has been enabled. This allows the project's MCP servers to start automatically. **Restart Claude Code** for this to take effect.
 
 ---
 
-### Check 4 — Atlassian MCP connectivity
+### Check 4 — Playwright MCP connectivity
+
+Check if the Playwright MCP tools are available by trying to use browser_navigate or browser_take_screenshot.
+
+If Playwright MCP tools are not available, tell the user:
+> Playwright MCP is not connected. This usually means:
+> 1. `.mcp.json` was just created — restart Claude Code to load it
+> 2. `enableAllProjectMcpServers` was just set — restart Claude Code
+> 3. npx can't find the package — run `npx @playwright/mcp@latest --help` in your terminal to test
+
+---
+
+### Check 5 — GitHub MCP connectivity
+
+If `drupal-claude.yml` exists, read `github.owner` and `github.repo` from it. Then use the GitHub MCP to list pull requests on that repository.
+
+If `drupal-claude.yml` does not exist yet, try listing repos for the authenticated user via GitHub MCP.
+
+**If the GitHub MCP returns results:** Pass. Continue.
+
+**If it fails:** Tell the user:
+> GitHub MCP is not connected. Most likely causes:
+> 1. `GITHUB_TOKEN` is not set (see Check 1)
+> 2. `.mcp.json` was just created — restart Claude Code
+> 3. The token has insufficient scopes — needs `repo` + `read:org`
+
+---
+
+### Check 6 — Atlassian MCP connectivity
 
 Use Atlassian MCP `atlassianUserInfo` to verify the connection is active.
 
-**If it returns user info:** ✅ Continue.
+**If it returns user info:** Pass. Continue.
 
-**If it fails:** ❌ Tell the user:
-
+**If it fails:** Tell the user:
 > Atlassian MCP is not connected. To fix:
 > 1. Open Claude Code Settings (gear icon)
 > 2. Go to MCP Servers
 > 3. Find Atlassian → click Disconnect → Connect again
-> 4. Authorize with your Axelerant Atlassian account (yourname@axelerant.com)
+> 4. Authorize with your Axelerant Atlassian account
 
 ---
 
-### Check 5 — drupal-claude.yml
+### Check 7 — drupal-claude.yml
 
 Run:
 ```bash
 cat drupal-claude.yml 2>/dev/null | head -1 || echo "NOT FOUND"
 ```
 
-**If found:** ✅ Continue.
+**If found:** Pass. Continue.
 
-**If NOT FOUND:** Auto-create it from the plugin template.
+**If NOT FOUND:** Auto-create from plugin template.
 
-Run:
 ```bash
 ls ~/.claude/plugins/cache/axelerant-automated-sdlc/drupal-sdlc/*/templates/drupal-claude.yml 2>/dev/null | tail -1
 ```
 
-Copy the template from that path to `drupal-claude.yml` in the current directory.
+Copy that template to `drupal-claude.yml` in the project root.
 
-Then tell the user:
-> `drupal-claude.yml` has been created from the plugin template. Open it now and fill in every field marked with a comment — especially:
-> - `project.name`
-> - `local_dev.base_url`
-> - `local_dev.quality_command`
-> - `github.owner` and `github.repo`
-> - `jira.project_key`
+Tell the user:
+> `drupal-claude.yml` has been created. Open it and fill in every field — especially `project.name`, `local_dev.base_url`, `github.owner`, `github.repo`, and `jira.project_key`.
 
 ---
 
-### Check 6 — CLAUDE.md
+### Check 8 — CLAUDE.md
 
 Run:
 ```bash
 cat CLAUDE.md 2>/dev/null | head -1 || echo "NOT FOUND"
 ```
 
-**If found:** ✅ Continue.
+**If found:** Pass. Continue.
 
-**If NOT FOUND:** Auto-create it from the plugin template.
+**If NOT FOUND:** Auto-create from plugin template.
 
-Run:
 ```bash
 ls ~/.claude/plugins/cache/axelerant-automated-sdlc/drupal-sdlc/*/templates/CLAUDE.md 2>/dev/null | tail -1
 ```
 
-Copy the template from that path to `CLAUDE.md` in the current directory.
-
-Then tell the user:
-> `CLAUDE.md` has been created from the plugin template. Open it and fill in the project name, Jira project key, and GitHub repo details at the top.
-
----
-
-### Check 7 — Plugin version
-
-Run:
-```bash
-cat ~/.claude/plugins/installed_plugins.json 2>/dev/null | grep -A5 'drupal-sdlc'
-```
+Copy that template to `CLAUDE.md` in the project root.
 
 Tell the user:
-- The installed version and git SHA
-- The current latest version is 1.1.0
-- If the installed version is 1.0.0 or the SHA is `4b822f5`, the plugin is outdated
-
-If outdated, tell the user:
-> Your plugin is outdated. Run these commands to reinstall the latest version:
-> ```
-> /plugin install drupal-sdlc@Pulkit0111/axelerant-automated-sdlc
-> /reload-plugins
-> ```
+> `CLAUDE.md` has been created. Fill in the project name, Jira key, and GitHub repo at the top.
 
 ---
 
@@ -177,22 +213,23 @@ After all checks, show this table:
 
 | Check | Status | Action needed |
 |-------|--------|---------------|
-| GITHUB_PERSONAL_ACCESS_TOKEN | ✅/❌ | — or fix |
-| Node.js 20+ | ✅/❌ | — or fix |
-| GitHub MCP | ✅/❌ | — or fix |
-| Atlassian MCP | ✅/❌ | — or fix |
-| drupal-claude.yml | ✅/❌ | — or created |
-| CLAUDE.md | ✅/❌ | — or created |
-| Plugin version | ✅/❌ | — or reinstall |
+| GITHUB_TOKEN | pass/fail | — or fix command |
+| .mcp.json | pass/fail | — or created |
+| enableAllProjectMcpServers | pass/fail | — or created |
+| Playwright MCP | pass/fail | — or restart needed |
+| GitHub MCP | pass/fail | — or fix |
+| Atlassian MCP | pass/fail | — or reconnect |
+| drupal-claude.yml | pass/fail | — or created, needs filling |
+| CLAUDE.md | pass/fail | — or created, needs filling |
+
+**If any checks created files or changed settings:**
+> Some files were created or settings were changed. **Restart Claude Code** and re-run `onboarding` to verify everything is connected.
 
 **If all checks pass:**
-> Everything is set up correctly. You can now run:
+> Everything is set up. You can now run:
 > ```
 > work on jira ticket KEY-X
 > ```
-
-**If any checks failed:**
-> Fix the items marked ❌ above, then re-run `/onboarding` to verify.
 
 ---
 
@@ -202,3 +239,4 @@ After all checks, show this table:
 - Do not run `work on jira ticket` or any other skill until all checks pass
 - When auto-creating config files, always copy from the plugin template — never generate content from scratch
 - Never fill in drupal-claude.yml values yourself — always ask the user to fill them in
+- Always tell the user to commit `.mcp.json` and `drupal-claude.yml` to git so team members get them
