@@ -15,10 +15,27 @@ Run the complete AI-native SDLC loop for a Jira ticket.
 
 ## Project Config Values
 ```
-!`cat drupal-claude.yml 2>/dev/null | grep -E '(owner|repo|cloud_id|project_key|board_url|drush_prefix|quality_command|base_url):' || echo "drupal-claude.yml not found — ask user for project details"`
+!`cat drupal-claude.yml 2>/dev/null | grep -E '(owner|repo|cloud_id|project_key|board_url|drush_prefix|quality_command|base_url):' || echo "drupal-claude.yml not found"`
 ```
 
 ## Instructions
+
+**Preflight check — run before Step 1:**
+
+Check if `drupal-claude.yml` exists:
+```bash
+test -f drupal-claude.yml && echo "EXISTS" || echo "MISSING"
+```
+
+If MISSING: STOP immediately. Do not proceed. Tell the user:
+> `drupal-claude.yml` not found. This file is required — it tells the plugin your GitHub repo, Jira project key, and DDEV config.
+>
+> Run `/onboarding` first to create and configure it. Then come back and run this command again.
+
+If EXISTS but `github.owner` or `jira.project_key` are empty placeholders: STOP and say:
+> `drupal-claude.yml` exists but has unfilled fields. Open it and fill in all the TODO values, then re-run this command.
+
+---
 
 You are running a complete autonomous SDLC loop driven by a Jira ticket.
 Follow every step in order. Do not skip steps.
