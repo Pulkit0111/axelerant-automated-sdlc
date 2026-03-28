@@ -27,6 +27,35 @@ At the end, show a summary table and tell the user what to do next.
 
 ---
 
+### Check 0 — Node.js version (BLOCKER)
+
+Run:
+```bash
+node --version 2>/dev/null || echo "NOT FOUND"
+```
+
+Extract the major version number. It must be **18 or higher**.
+
+**If 18+:** Pass. Continue.
+
+**If below 18 or NOT FOUND:** STOP. This is a hard blocker — nothing else will work.
+
+Tell the user:
+> Node.js 18+ is required. The MCP servers (Playwright and GitHub) cannot start on older versions.
+>
+> If you use nvm:
+> ```shell
+> nvm install 20
+> nvm alias default 20
+> ```
+> If you don't have nvm, install Node.js from https://nodejs.org
+>
+> Then **restart Claude Code** and re-run `onboarding`.
+
+Do NOT continue to the remaining checks if Node is too old.
+
+---
+
 ### Check 1 — GITHUB_TOKEN
 
 Run:
