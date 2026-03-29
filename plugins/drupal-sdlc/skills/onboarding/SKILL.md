@@ -223,16 +223,111 @@ cat CLAUDE.md 2>/dev/null | head -1 || echo "NOT FOUND"
 
 **If found:** Pass. Continue.
 
-**If NOT FOUND:** Auto-create from plugin template.
+**If NOT FOUND:** Generate it from `drupal-claude.yml`.
 
-```bash
-ls ~/.claude/plugins/cache/axelerant-automated-sdlc/drupal-sdlc/*/templates/CLAUDE.md 2>/dev/null | tail -1
+**Important:** `drupal-claude.yml` MUST exist and be filled in before this step runs. If Check 7 just created it and the user hasn't filled it in yet, tell the user to fill in `drupal-claude.yml` first and re-run onboarding — do NOT generate CLAUDE.md from an unfilled template.
+
+If `drupal-claude.yml` exists and has values filled in (i.e. `project.name` is not empty), read it and generate `CLAUDE.md` with the following structure:
+
+```markdown
+# {project.name} — Claude Code Guide
+
+Project-specific configuration is in `drupal-claude.yml`. Read it at the start of every task.
+
+## Project Details
+- **Project:** {project.name}
+- **Drupal:** {project.drupal_version} | PHP {project.php_version}
+- **Local:** {local_dev.base_url} ({local_dev.tool})
+- **Jira:** {jira.project_key} at {jira.cloud_id}
+- **GitHub:** {github.owner}/{github.repo}
+- **Quality command:** `{local_dev.quality_command}`
+
+## Workflow — Follow This Every Time
+1. Read the Jira ticket using Atlassian MCP
+2. Use the spec-writer skill to generate the implementation plan
+3. Post the spec as a comment on the Jira ticket
+4. Transition the ticket to In Progress
+5. Switch to main and pull latest: `git checkout main && git pull origin main`
+6. Create a branch: feat/{jira.project_key}-X-short-description
+7. Build using config-builder and/or module-scaffolder skills
+8. Run the validate skill after every change
+9. Use test-writer to generate and run tests
+10. Use pr-creator to raise the PR
+11. Use pr-reviewer to review and post review comment on PR
+12. Post PR link back to Jira ticket
+13. Notify user — ready for final review and merge
+14. After merge — GitHub Action automatically transitions Jira ticket to Done
+
+## Trigger Command
+```
+work on jira ticket {jira.project_key}-X
 ```
 
-Copy that template to `CLAUDE.md` in the project root.
+## Coding Standards
+- Follow Drupal coding standards
+- All code must pass quality checker before commit: `{local_dev.quality_command}`
+- Services use constructor injection via *.services.yml
+- Never call \Drupal::service() in classes
+- Config forms extend ConfigFormBase
+
+## AI Guardrails
+- NEVER modify any file not explicitly required by the current task
+- Always show a diff before making changes
+- Always state risk level: Low / Medium / High
+- Ask before touching more than one module at a time
+- NEVER write UUID values in config YAML — let config:export generate them
+
+## Protected Files — NEVER modify without explicit approval
+{list each path from protected_files in drupal-claude.yml, one per line with a dash prefix}
+
+## Quality Checks
+After every change run: `{local_dev.quality_command}`
+Check that all PHP, YAML, Twig, and JSON files are valid before committing.
+
+## Config Management — ALWAYS follow this order
+1. {local_dev.drush_prefix} config:import -y
+2. {local_dev.drush_prefix} config:export -y
+3. {local_dev.drush_prefix} config:status (must show "No differences")
+Always commit post-export files — never hand-written config YAML.
+
+## Known Pitfalls — Read Before Every Task
+
+### 1. Never hand-craft UUIDs in config YAML
+Leave the uuid key absent. config:export adds the correct UUID after import.
+
+### 2. Never write inline login in Playwright tests
+Always use loginAsAdmin() from tests/playwright/helpers/auth.ts.
+
+### 3. Always run config:export after config:import
+Never commit hand-written config YAML. Always commit the post-export version.
+
+### 4. Never save screenshots to the project root
+Always save to tests/playwright/test-results/screenshots/
+
+### 5. Never use #edit-submit selector in Playwright tests
+Use getByRole('button', { name: 'Save' }) instead.
+
+### 6. CKEditor body field
+Never use #edit-body-0-value — it is hidden by CKEditor5.
+Always use page.getByRole('textbox', { name: 'Rich Text Editor' })
+
+### 7. Always post PR link back to Jira
+After raising a PR, always comment the PR URL on the Jira ticket.
+
+### 8. Jira ticket transitions to Done automatically
+A GitHub Action handles the Done transition when the PR is merged. Do NOT manually transition to Done.
+
+### 9. Never use gh CLI — use GitHub MCP instead
+Always use GitHub MCP tools for creating PRs, posting reviews, and reading PR diffs.
+
+### 10. Never add attribution stamps
+Never add "Generated with Claude Code" or similar stamps to PR descriptions, review comments, or Jira comments.
+```
+
+Replace all `{placeholder}` values with the actual values from `drupal-claude.yml`. Write the result to `CLAUDE.md`.
 
 Tell the user:
-> `CLAUDE.md` has been created. Fill in the project name, Jira key, and GitHub repo at the top.
+> `CLAUDE.md` has been generated from `drupal-claude.yml`. Review it — if anything looks wrong, update `drupal-claude.yml` and re-run onboarding to regenerate.
 
 ---
 
@@ -248,8 +343,8 @@ After all checks, show this table:
 | Playwright MCP | pass/fail | — or restart needed |
 | GitHub MCP | pass/fail | — or fix |
 | Atlassian MCP | pass/fail | — or reconnect |
-| drupal-claude.yml | pass/fail | — or created, needs filling |
-| CLAUDE.md | pass/fail | — or created, needs filling |
+| drupal-claude.yml | pass/fail | — or created (user must fill in) |
+| CLAUDE.md | pass/fail | — or generated from drupal-claude.yml |
 
 **If any checks created files or changed settings:**
 > Some files were created or settings were changed. **Restart Claude Code** and re-run `onboarding` to verify everything is connected.
@@ -266,6 +361,8 @@ After all checks, show this table:
 
 - Run every check in order — do not skip
 - Do not run `work on jira ticket` or any other skill until all checks pass
-- When auto-creating config files, always copy from the plugin template — never generate content from scratch
-- Never fill in drupal-claude.yml values yourself — always ask the user to fill them in
-- Always tell the user to commit `.mcp.json` and `drupal-claude.yml` to git so team members get them
+- For `.mcp.json` and `drupal-claude.yml` — copy from the plugin template, never generate from scratch
+- For `CLAUDE.md` — always GENERATE from `drupal-claude.yml` values, never use a static template
+- Never fill in `drupal-claude.yml` values yourself — always ask the user to fill them in
+- If `drupal-claude.yml` is not filled in yet, do NOT generate CLAUDE.md — tell user to fill YAML first
+- Always tell the user to commit `.mcp.json`, `drupal-claude.yml`, and `CLAUDE.md` to git
