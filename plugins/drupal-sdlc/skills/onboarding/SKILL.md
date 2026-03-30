@@ -216,33 +216,47 @@ Tell the user:
 
 ### Check 8 — CLAUDE.md
 
+This check has two parts: base context from `/init`, then plugin-specific sections appended.
+
+**Important:** `drupal-claude.yml` MUST exist and be filled in before this step. If Check 7 just created it and the user hasn't filled it in yet, tell the user to fill in `drupal-claude.yml` first and re-run onboarding.
+
 Run:
 ```bash
 cat CLAUDE.md 2>/dev/null | head -1 || echo "NOT FOUND"
 ```
 
-**If found:** Pass. Continue.
+#### If CLAUDE.md does NOT exist:
 
-**If NOT FOUND:** Generate it from `drupal-claude.yml`.
+**Step 8a — Tell the user to run `/init` first:**
 
-**Important:** `drupal-claude.yml` MUST exist and be filled in before this step runs. If Check 7 just created it and the user hasn't filled it in yet, tell the user to fill in `drupal-claude.yml` first and re-run onboarding — do NOT generate CLAUDE.md from an unfilled template.
+> `CLAUDE.md` does not exist. Run `/init` in Claude Code first — it scans your codebase and generates a CLAUDE.md with project context (stack, conventions, file structure, modules).
+>
+> After `/init` completes, re-run `onboarding` and I will append the SDLC workflow sections.
 
-If `drupal-claude.yml` exists and has values filled in (i.e. `project.name` is not empty), read it and generate `CLAUDE.md` with the following structure:
+STOP here. Do NOT proceed to the summary. The user must run `/init` and then re-run onboarding.
+
+#### If CLAUDE.md EXISTS but does NOT contain "## Drupal SDLC Workflow":
+
+The file was created by `/init` but the plugin sections haven't been appended yet.
+
+**Step 8b — Append plugin-specific sections:**
+
+Read `drupal-claude.yml` and append the following to the END of the existing `CLAUDE.md` (do NOT overwrite what `/init` generated):
 
 ```markdown
-# {project.name} — Claude Code Guide
+
+---
+
+## Drupal SDLC Plugin Configuration
 
 Project-specific configuration is in `drupal-claude.yml`. Read it at the start of every task.
 
-## Project Details
-- **Project:** {project.name}
-- **Drupal:** {project.drupal_version} | PHP {project.php_version}
-- **Local:** {local_dev.base_url} ({local_dev.tool})
 - **Jira:** {jira.project_key} at {jira.cloud_id}
 - **GitHub:** {github.owner}/{github.repo}
 - **Quality command:** `{local_dev.quality_command}`
+- **Drush prefix:** `{local_dev.drush_prefix}`
 
-## Workflow — Follow This Every Time
+## Drupal SDLC Workflow — Follow This Every Time
 1. Read the Jira ticket using Atlassian MCP
 2. Use the spec-writer skill to generate the implementation plan
 3. Post the spec as a comment on the Jira ticket
@@ -259,16 +273,10 @@ Project-specific configuration is in `drupal-claude.yml`. Read it at the start o
 14. After merge — GitHub Action automatically transitions Jira ticket to Done
 
 ## Trigger Command
+To start the full workflow:
 ```
 work on jira ticket {jira.project_key}-X
 ```
-
-## Coding Standards
-- Follow Drupal coding standards
-- All code must pass quality checker before commit: `{local_dev.quality_command}`
-- Services use constructor injection via *.services.yml
-- Never call \Drupal::service() in classes
-- Config forms extend ConfigFormBase
 
 ## AI Guardrails
 - NEVER modify any file not explicitly required by the current task
@@ -280,54 +288,34 @@ work on jira ticket {jira.project_key}-X
 ## Protected Files — NEVER modify without explicit approval
 {list each path from protected_files in drupal-claude.yml, one per line with a dash prefix}
 
-## Quality Checks
-After every change run: `{local_dev.quality_command}`
-Check that all PHP, YAML, Twig, and JSON files are valid before committing.
-
 ## Config Management — ALWAYS follow this order
 1. {local_dev.drush_prefix} config:import -y
 2. {local_dev.drush_prefix} config:export -y
 3. {local_dev.drush_prefix} config:status (must show "No differences")
 Always commit post-export files — never hand-written config YAML.
 
-## Known Pitfalls — Read Before Every Task
+## Known Pitfalls
 
-### 1. Never hand-craft UUIDs in config YAML
-Leave the uuid key absent. config:export adds the correct UUID after import.
-
-### 2. Never write inline login in Playwright tests
-Always use loginAsAdmin() from tests/playwright/helpers/auth.ts.
-
-### 3. Always run config:export after config:import
-Never commit hand-written config YAML. Always commit the post-export version.
-
-### 4. Never save screenshots to the project root
-Always save to tests/playwright/test-results/screenshots/
-
-### 5. Never use #edit-submit selector in Playwright tests
-Use getByRole('button', { name: 'Save' }) instead.
-
-### 6. CKEditor body field
-Never use #edit-body-0-value — it is hidden by CKEditor5.
-Always use page.getByRole('textbox', { name: 'Rich Text Editor' })
-
-### 7. Always post PR link back to Jira
-After raising a PR, always comment the PR URL on the Jira ticket.
-
-### 8. Jira ticket transitions to Done automatically
-A GitHub Action handles the Done transition when the PR is merged. Do NOT manually transition to Done.
-
-### 9. Never use gh CLI — use GitHub MCP instead
-Always use GitHub MCP tools for creating PRs, posting reviews, and reading PR diffs.
-
-### 10. Never add attribution stamps
-Never add "Generated with Claude Code" or similar stamps to PR descriptions, review comments, or Jira comments.
+1. **Never hand-craft UUIDs in config YAML** — config:export adds them after import.
+2. **Never write inline login in Playwright tests** — use loginAsAdmin() from helpers/auth.ts.
+3. **Always run config:export after config:import** — commit the exported version, never hand-written.
+4. **Save screenshots to** tests/playwright/test-results/screenshots/ — never the project root.
+5. **Never use #edit-submit** — use getByRole('button', { name: 'Save' }).
+6. **CKEditor body field** — use page.getByRole('textbox', { name: 'Rich Text Editor' }), never #edit-body-0-value.
+7. **Always post PR link back to Jira** after raising a PR.
+8. **Jira Done transition is automatic** — GitHub Action handles it on merge. Do NOT manually transition.
+9. **Never use gh CLI** — always use GitHub MCP tools for PRs and reviews.
+10. **Never add attribution stamps** — no "Generated with Claude Code" in PRs, reviews, or Jira comments.
 ```
 
-Replace all `{placeholder}` values with the actual values from `drupal-claude.yml`. Write the result to `CLAUDE.md`.
+Replace all `{placeholder}` values with actual values from `drupal-claude.yml`. APPEND to the existing file — do not overwrite.
 
 Tell the user:
-> `CLAUDE.md` has been generated from `drupal-claude.yml`. Review it — if anything looks wrong, update `drupal-claude.yml` and re-run onboarding to regenerate.
+> SDLC workflow sections have been appended to `CLAUDE.md`. The base project context from `/init` is preserved. Review the full file.
+
+#### If CLAUDE.md EXISTS and ALREADY contains "## Drupal SDLC Workflow":
+
+Pass. The plugin sections are already there. Continue.
 
 ---
 
@@ -344,7 +332,7 @@ After all checks, show this table:
 | GitHub MCP | pass/fail | — or fix |
 | Atlassian MCP | pass/fail | — or reconnect |
 | drupal-claude.yml | pass/fail | — or created (user must fill in) |
-| CLAUDE.md | pass/fail | — or generated from drupal-claude.yml |
+| CLAUDE.md | pass/fail | — run /init then re-run onboarding to append |
 
 **If any checks created files or changed settings:**
 > Some files were created or settings were changed. **Restart Claude Code** and re-run `onboarding` to verify everything is connected.
@@ -362,7 +350,8 @@ After all checks, show this table:
 - Run every check in order — do not skip
 - Do not run `work on jira ticket` or any other skill until all checks pass
 - For `.mcp.json` and `drupal-claude.yml` — copy from the plugin template, never generate from scratch
-- For `CLAUDE.md` — always GENERATE from `drupal-claude.yml` values, never use a static template
+- For `CLAUDE.md` — user runs `/init` first for base context, then onboarding APPENDS plugin sections from `drupal-claude.yml`
+- Never overwrite CLAUDE.md content generated by `/init` — always append to the end
 - Never fill in `drupal-claude.yml` values yourself — always ask the user to fill them in
-- If `drupal-claude.yml` is not filled in yet, do NOT generate CLAUDE.md — tell user to fill YAML first
+- If `drupal-claude.yml` is not filled in yet, do NOT append to CLAUDE.md — tell user to fill YAML first
 - Always tell the user to commit `.mcp.json`, `drupal-claude.yml`, and `CLAUDE.md` to git
