@@ -35,6 +35,16 @@ If MISSING: STOP immediately. Do not proceed. Tell the user:
 If EXISTS but `github.owner` or `jira.project_key` are empty placeholders: STOP and say:
 > `drupal-claude.yml` exists but has unfilled fields. Open it and fill in all the TODO values, then re-run this command.
 
+## Iteration Log Check
+
+Before starting Step 1, check for a project-level iteration log:
+```bash
+cat .claude/skills/work-on-jira-ticket/iterations.md 2>/dev/null
+```
+If it exists, read it. Apply any relevant learnings — especially around orchestration failures, Jira transition quirks, or step ordering issues specific to this project.
+
+Also read the plugin-level learnings in the `## Iteration Log` section at the bottom of this file.
+
 ---
 
 You are running a complete autonomous SDLC loop driven by a Jira ticket.
@@ -320,3 +330,10 @@ When the user says the PR has been merged:
 - Never add attribution stamps to PR descriptions, review comments, or Jira comments
 - Never use gh CLI commands — always use GitHub MCP tools instead
 - On any step failure: post error context to Jira, present error to user, do NOT proceed
+
+## Iteration Log
+
+Record learnings here after real uses that reveal orchestration failure points, MCP quirks, or step ordering issues.
+Format: `[YYYY-MM-DD, {TICKET}] <lesson>` — include the ticket key so the context is traceable.
+
+_No entries yet. Add the first one after the first real use._

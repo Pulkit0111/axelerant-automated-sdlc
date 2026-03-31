@@ -8,6 +8,16 @@ argument-hint: "<description of field or config to generate>"
 
 Generate Drupal configuration YAML files from natural language requirements.
 
+## Before You Start
+
+Check for a project-level iteration log:
+```bash
+cat .claude/skills/config-builder/iterations.md 2>/dev/null
+```
+If it exists, read it and apply any relevant learnings to this run.
+
+Also read the plugin-level learnings in the `## Iteration Log` section at the bottom of this file.
+
 ## Project Context
 ```yaml
 !`cat drupal-claude.yml 2>/dev/null || echo "No drupal-claude.yml found — ask user for entity types and drush prefix"`
@@ -110,3 +120,10 @@ Check `config_splits` in the project context above. If the project uses config s
 ## Additional Resources
 
 For complete YAML examples of every field type, see [config-reference.md](config-reference.md).
+
+## Iteration Log
+
+Record learnings here after real uses that reveal non-obvious Drupal config behaviour.
+Format: `[YYYY-MM-DD] <lesson>` — keep entries short and actionable.
+
+_No entries yet. Add the first one after the first real use._

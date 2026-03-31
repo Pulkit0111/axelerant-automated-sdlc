@@ -7,6 +7,16 @@ description: "Run full validation on recent changes including linting, config im
 
 Run comprehensive validation on recent work with visual verification.
 
+## Before You Start
+
+Check for a project-level iteration log:
+```bash
+cat .claude/skills/validate/iterations.md 2>/dev/null
+```
+If it exists, read it and apply any relevant learnings to this run.
+
+Also read the plugin-level learnings in the `## Iteration Log` section at the bottom of this file.
+
 ## Project Context
 ```yaml
 !`cat drupal-claude.yml 2>/dev/null || echo "No drupal-claude.yml — will use defaults"`
@@ -150,3 +160,10 @@ Ask the user: *"All checks are passing. Please review the results above and the 
 - If DDEV is not running, warn the user — config import and visual verification require it
 - Screenshots must use full page capture
 - If Playwright MCP is not available, instruct the user to manually verify the URLs
+
+## Iteration Log
+
+Record learnings here after real uses that reveal non-obvious validation sequencing or environment issues.
+Format: `[YYYY-MM-DD] <lesson>` — keep entries short and actionable.
+
+_No entries yet. Add the first one after the first real use._
